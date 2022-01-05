@@ -10,12 +10,12 @@ from torch.utils.data import Dataset
 
 
 class ColorizationDataset(Dataset):
-    def __init__(self, dir_dataset, image_size=320, which_set="train"):
+    def __init__(self, dir_dataset, image_size=320, train_set=True):
         self.dir_dataset = dir_dataset
         self.image_size = image_size
         self.list_images = sorted(os.listdir(self.dir_dataset))
 
-        if which_set == "train":
+        if train_set:
             self.transform = transforms.Compose([
                 transforms.RESIZE((self.image_size, self.image_size), Image.BILINEAR),
                 transforms.RandomHorizontalFlip()
