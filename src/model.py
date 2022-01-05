@@ -19,6 +19,7 @@ class ResnetEncoder(nn.Module):
         self.block4 = self.resnet34.layer2(self.block3)  # [128, H/8, W/8]
         self.block5 = self.resnet34.layer3(self.block4)  # [256, H/16, W/16]
         self.block6 = self.resnet34.layer4(self.block6)  # [512, H/32, W/32]
+        return self.block6
 
 class UNetDecoder(nn.Module):
     def __init__(self):
