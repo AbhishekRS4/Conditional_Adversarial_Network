@@ -45,5 +45,7 @@ class ColorizationDataset(Dataset):
         img_ab = img_lab[[1, 2]], ...] / 110.
         # img_ab belongs to [-1, 1]
 
-        # return a dict of l and ab channels
-        return {"l": img_l, "ab": img_ab}
+        # return a dict of domain_1 and domain_2 images
+        # domain_1 is l channel and
+        # domain_2 is ab channel
+        return {"domain_1": img_l, "domain_2": img_ab}
