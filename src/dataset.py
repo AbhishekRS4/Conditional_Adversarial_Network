@@ -8,14 +8,24 @@ import torch
 from torchvision import transforms
 from torch.utils.data import Dataset
 
-
 class ColorizationDataset(Dataset):
-    def __init__(self, dir_dataset, image_size=320, train_set=True):
+    def __init__(self, dir_dataset, image_size=320, is_train_set=True):
+        """
+        ---------
+        Arguments
+        ---------
+        dir_dataset : str
+            full directory path of dataset (train or valid) containing images
+        image_size : int
+            image size to be used for training
+        is_train_set : bool
+            boolean to control whether to generate a train or validation dataset object
+        """
         self.dir_dataset = dir_dataset
         self.image_size = image_size
         self.list_images = sorted(os.listdir(self.dir_dataset))
 
-        if train_set:
+        if is_train_set:
             self.transform = transforms.Compose([
                 transforms.RESIZE((self.image_size, self.image_size), Image.BILINEAR),
                 transforms.RandomHorizontalFlip()
@@ -48,4 +58,9 @@ class ColorizationDataset(Dataset):
         # return a dict of domain_1 and domain_2 images
         # domain_1 is l channel and
         # domain_2 is ab channel
-        return {"domain_1": img_l, "domain_2": img_ab}
+        return {"domain_1": img_l, "domain_2": img_ab, "file_name": self.list_images[idx]}
+
+def get_dataset_loader(dir_dataset, image_size=320, batch_size=8, is_train_set=True):
+    dataset = ColorizationDataset(dir_dataset, image_size=image_size, is_train_set=is_train_set)
+    dataset_loader = DataLoader(dataset, batch_size=batch_size, shuffle=is_train_set)
+    return dataset_loader
