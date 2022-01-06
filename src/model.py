@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchvision.models import resnet34
 
 from loss import GANLoss
-from torchvision.models import resnet34
 
 class ResNetEncoder(nn.Module):
     """
@@ -200,13 +200,14 @@ class PatchDiscriminatorGAN(nn.Module):
     def forward(self, x):
         return self.model(x)
 
-class ImageToImageGAN(nn.Module):
+class ImageToImageConditionalGAN(nn.Module):
     """
     Defines Image (domain A) to Image (domain B) Conditional Adversarial Network
     """
-    def __init__(self, lr_gen=2e-4, lr_dis=2e-4, beta1=0.5, beta2=0.999, lambda=100.0):
+    def __init__(self, lr_gen=2e-4, lr_dis=2e-4, beta1=0.5, beta2=0.999, lambda_=100.0):
         super().__init__()
-        self.lambda = lambda
+        self.loss_names = ["gen_gan", "gen_l1", "dis_real", "dis_fake"]
+        self.lambda_ = lambda_
         self.net_gen = Generator()
         self.net_dis = Discriminator(in_channels=3)
 
@@ -237,8 +238,8 @@ class ImageToImageGAN(nn.Module):
         data : dict
             dictionary object containing image data of domains 1 and 2
         """
-        self.real_domain_1 = data["domain_1"]
-        self.real_domain_2 = data["domain_2"]
+        self.real_domain_1 = data["domain_1"].to(self.device)
+        self.real_domain_2 = data["domain_2"].to(self.device)
 
     def forward(self):
         # compute fake image in domain_2: Generator(domain_1)
@@ -255,7 +256,7 @@ class ImageToImageGAN(nn.Module):
 
         # second, Generator(domain_1) = domain_2,
         # i.e. output predicted by Generator should be close the domain_2
-        self.loss_gen_l1 = self.criterion_l1(self.fake_domain_2, self.real_domain_2) * self.lambda
+        self.loss_gen_l1 = self.criterion_l1(self.fake_domain_2, self.real_domain_2) * self.lambda_
 
         # compute the combined loss
         self.loss_gen = self.loss_gen_gan + self.loss_gen_l1
@@ -280,7 +281,7 @@ class ImageToImageGAN(nn.Module):
         self.loss_dis = (self.loss_dis_fake + self.loss_dis_real) * 0.5
         self.loss_dis.backward()
 
-    def optimize(self):
+    def optimize_params(self):
         # compute fake image in domain_2: Generator(domain_1)
         self.forward()
 
@@ -311,3 +312,9 @@ class ImageToImageGAN(nn.Module):
         self.optimizer_gen.zero_grad()
         self.backward_gen()
         self.optimizer_gen.step()
+
+    def get_current_losses(self):
+        all_losses = dict()
+        for loss_name in self.loss_names:
+            all_losses["loss_" + loss_name] = float(getattr(self, "loss_" + loss_name))
+        return all_losses
