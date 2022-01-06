@@ -2,12 +2,23 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from loss import GANLoss
 from torchvision.models import resnet34
 
-class ResnetEncoder(nn.Module):
-    def __init__(self):
+class ResNetEncoder(nn.Module):
+    """
+    Defines ResNet-34 Encoder
+    """
+    def __init__(self, pretrained=True):
+        """
+        ---------
+        Arguments
+        ---------
+        pretrained : bool
+            boolean to control whether to use a pretrained resnet model or not
+        """
         super().__init__()
-        self.resnet34 = resnet34(pretrained=True)
+        self.resnet34 = resnet34(pretrained=pretrained)
 
     def forward(self, x):
         self.block1 = self.resnet34.conv1(x)
@@ -22,7 +33,19 @@ class ResnetEncoder(nn.Module):
         return self.block5
 
 class UNetDecoder(nn.Module):
+    """
+    Defines UNet Decoder
+    """
     def __init__(self, encoder_net, out_channels=2):
+        """
+        ---------
+        Arguments
+        ---------
+        encoder_net : PyTorch model object of the encoder
+            PyTorch model object of the encoder
+        out_channels : int
+            number of output channels of UNet Decoder
+        """
         super().__init__()
         self.encoder_net = encoder_net
         self.up_block1 = self.up_conv_block(512, 256)
@@ -60,6 +83,24 @@ class UNetDecoder(nn.Module):
         return self.out_features
 
     def up_conv_block(self, in_channels, out_channels, conv_kernel_size=3, conv_tr_kernel_size=4):
+        """
+        ---------
+        Arguments
+        ---------
+        in_channels : int
+            number of input channels
+        out_channels : int
+            number of output channels
+        conv_kernel_size : int
+            kernel size for convolution layer
+        conv_tr_kernel_size : int
+            kernel size for convolution transpose layer
+
+        -------
+        Returns
+        -------
+        A sequential block depending on the input arguments
+        """
         block = nn.Sequential(
             nn.ConvTranspose2d(in_channels, out_channels, kernel_size=conv_tr_kernel_size, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(),
@@ -71,10 +112,13 @@ class UNetDecoder(nn.Module):
         return block
 
 class ResUNet(nn.Module):
+    """
+    Defines Residual UNet model
+    """
     def __init__(self):
         super().__init__()
-        self.encoder_net = ResnetEncoder()
-        self.decoder_net = UNetDecoder()
+        self.encoder_net = ResNetEncoder()
+        self.decoder_net = UNetDecoder(self.encoder_net)
 
     def forward(self, x):
         self.encoder_features = self.encoder_net(x)
@@ -82,6 +126,9 @@ class ResUNet(nn.Module):
         return self.decoder_features
 
 class Generator(nn.Module):
+    """
+    Defines a Generator in a GAN
+    """
     def __init__(self):
         super().__init__()
         self.res_u_net = ResUNet()
@@ -89,23 +136,178 @@ class Generator(nn.Module):
     def forward(self, x):
         return self.res_u_net(x)
 
-class Discriminator(nn.Module):
-    def __init__(self):
+class PatchDiscriminatorGAN(nn.Module):
+    """
+    Defines a Patch discriminator for GAN
+    """
+    def __init__(self, in_channels, num_filters=64, num_blocks=3):
+        """
+        ---------
+        Arguments
+        ---------
+        in_channels : int
+            number of input channels for Discriminator
+        num_filters : int
+            number of filters in the first layer of Discriminator
+        num_blocks : int
+            number of blocks to be used in the Discriminator
+        """
         super().__init__()
-        """
-        TBD
-        """
-    def forward(self.):
-        """
-        TBD
-        """
+        model_blocks = [self.get_conv_block(in_channels, num_filters, is_batch_norm=False)]
+        for i in range(num_blocks):
+            if i != num_blocks-1:
+                model_blocks += [self.get_conv_block(num_filters*(2**i), num_filters*(2**(i+1)))]
+            else:
+                model_blocks += [self.get_conv_block(num_filters*(2**i), num_filters*(2**(i+1)), stride=1)]
+        model_blocks += [self.get_conv_block(num_filters*(2**num_blocks), 1, stride=1, is_batch_norm=False, is_activation=False)]
+        self.model = nn.Sequential(*model_blocks)
 
-class ConditionalAdversarialNet(nn.Module):
-    def __init__(self):
+    def get_conv_block(self, in_channels, out_channels, kernel_size=4, stride=2, padding=1, is_batch_norm=True, is_activation=True):
         """
-        TBD
+        ---------
+        Arguments
+        ---------
+        in_channels : int
+            input number of channels
+        out_channels : int
+            output number of channels
+        kernel_size : int
+            convolution kernel size
+        stride : int
+            stride to be used for convolution
+        padding : int
+            padding to be used for convolution
+        is_batch_norm : bool
+            boolean to control whether to add a batchnorm layer to the block
+        is_activation : bool
+            boolean to control whether to add an activation function to the block
+
+        -------
+        Returns
+        -------
+        a sequential block depending on the input arguments
         """
-    def forward(self.):
+        block = [
+            nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size,
+            stride=stride, padding=padding, bias=not(is_batch_norm))
+        ]
+        if is_batch_norm:
+            block += [nn.BatchNorm2d(out_channels)]
+        if is_activation:
+            block += [nn.ELU()]
+        return nn.Sequential(*block)
+
+    def forward(self, x):
+        return self.model(x)
+
+class ImageToImageGAN(nn.Module):
+    """
+    Defines Image (domain A) to Image (domain B) Conditional Adversarial Network
+    """
+    def __init__(self, lr_gen=2e-4, lr_dis=2e-4, beta1=0.5, beta2=0.999, lambda=100.0):
+        super().__init__()
+        self.lambda = lambda
+        self.net_gen = Generator()
+        self.net_dis = Discriminator(in_channels=3)
+
+        self.criterion_GAN = GANLoss().to(self.device)
+        self.criterion_l1 = nn.L1Loss()
+
+        self.optimizer_gen = torch.optim.Adam(self.net_gen.parameters(), lr=lr_gen, betas=(beta1, beta2))
+        self.optimizer_dis = torch.optim.Adam(self.net_dis.parameters(), lr=lr_dis, betas=(beta1, beta2))
+
+    def set_requires_grad(self, model, requires_grad=True):
         """
-        TBD
+        ---------
+        Arguments
+        ---------
+        model : model object
+            PyTorch model object
+        requires_grad : bool
+            boolean to control whether the model requires gradients or not
         """
+        for param in model.parameters():
+            param.requires_grad = requires_grad
+
+    def setup_input(self, data):
+        """
+        ---------
+        Arguments
+        ---------
+        data : dict
+            dictionary object containing image data of domains 1 and 2
+        """
+        self.real_domain_1 = data["domain_1"]
+        self.real_domain_2 = data["domain_2"]
+
+    def forward(self):
+        # compute fake image in domain_2: Generator(domain_1)
+        self.fake_domain_2 = self.net_gen(self.real_domain_1)
+
+    def backward_gen(self):
+        """
+        Calculate GAN and L1 loss for generator
+        """
+        # first, Generator(domain_1) should try to fool the Discriminator
+        fake_domain_12 = torch.cat((self.real_domain_1, self.fake_domain_2), dim=1)
+        pred_fake = self.net_dis(fake_domain_12)
+        self.loss_gen_gan = self.criterion_GAN(pred_fake, True)
+
+        # second, Generator(domain_1) = domain_2,
+        # i.e. output predicted by Generator should be close the domain_2
+        self.loss_gen_l1 = self.criterion_l1(self.fake_domain_2, self.real_domain_2) * self.lambda
+
+        # compute the combined loss
+        self.loss_gen = self.loss_gen_gan + self.loss_gen_l1
+        self.loss_gen.backward()
+
+    def backward_dis(self):
+        """
+        Calculate GAN loss for discriminator
+        """
+        # Fake
+        fake_domain_12 = torch.cat((self.real_domain_1, self.fake_domain_2), dim=1)
+        # stop backprop to generator by detaching fake_domain_12
+        pred_fake = self.net_dis(fake_domain_12.detach())
+        self.loss_dis_fake = self.criterion_GAN(pred_fake, False)
+
+        # Real
+        real_domain_12 = torch.cat((self.real_domain_1, self.real_domain_2), dim=1)
+        pred_real = self.net_dis(real_domain_12)
+        self.loss_dis_real = self.criterion_GAN(pred_real, True)
+
+        # compute the combined loss
+        self.loss_dis = (self.loss_dis_fake + self.loss_dis_real) * 0.5
+        self.loss_dis.backward()
+
+    def optimize(self):
+        # compute fake image in domain_2: Generator(domain_1)
+        self.forward()
+
+        """
+        --------------------
+        Update Discriminator
+        --------------------
+        # enable backprop for Discriminator
+        # set Discriminator's gradients to zero
+        # compute gradients for Discriminator
+        # update Discriminator's weights
+        """
+        self.set_requires_grad(self.net_dis, True)
+        self.optimizer_dis.zero_grad()
+        self.backward_dis()
+        self.optimizer_dis.step()
+
+        """
+        ----------------
+        Update Generator
+        ----------------
+        # Discriminator requires no gradients when optimizing Generator
+        # set Generator's gradients to zero
+        # calculate gradients for Generator
+        # update Generator's weights
+        """
+        self.set_requires_grad(self.net_dis, False)
+        self.optimizer_gen.zero_grad()
+        self.backward_gen()
+        self.optimizer_gen.step()
