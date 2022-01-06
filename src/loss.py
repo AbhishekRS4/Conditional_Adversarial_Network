@@ -10,6 +10,7 @@ class GANLoss(nn.Module):
     """
     def __init__(self, loss_mode="vanilla", real_label=1.0, fake_label=0.0):
         """
+        ---------
         Arguments
         ---------
         loss_mode : str
@@ -32,6 +33,7 @@ class GANLoss(nn.Module):
 
     def get_target_tensor(self, prediction, target_is_real):
         """
+        ---------
         Arguments
         ---------
         prediction : tensor
@@ -39,6 +41,7 @@ class GANLoss(nn.Module):
         target_is_real : bool
             whether the groundtruth label is for a real image or a fake image
 
+        -------
         Returns
         -------
         tensor : A label tensor filled with groundtruth label with the same size as that of input
@@ -51,6 +54,7 @@ class GANLoss(nn.Module):
 
     def __call__(self, prediction, target_is_real):
         """
+        ---------
         Arguments
         ---------
         prediction : tensor
@@ -58,6 +62,7 @@ class GANLoss(nn.Module):
         target_is_real : bool
             whether the groundtruth label is for a real image or a fake image
 
+        -------
         Returns
         -------
         loss : the computed loss
