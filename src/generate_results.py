@@ -25,11 +25,17 @@ def generate_gan_results(FLAGS):
     print(f"Num test images to be processed : {num_test_files}")
 
     for idx in range(num_test_files):
-        img_rgb = read_image_rgb(os.path.join(FLAGS.dir_dataset_test, list_test_files[idx]))
-        img_rgb_resized = resize_image(img_rgb, (FLAGS.image_size, FLAGS.image_size))
-        img_lab = convert_rgb2lab(img_rgb_resized)
+        img = read_image(os.path.join(FLAGS.dir_dataset_test, list_test_files[idx]))
 
-        img_l = img_lab[:, :, 0]
+        if len(img.shape) == 3:
+            img_rgb_resized = resize_image(img, (FLAGS.image_size, FLAGS.image_size))
+            img_lab = convert_rgb2lab(img_rgb_resized)
+            img_l = img_lab[:, :, 0]
+        else:
+            img_gray_resized = resize_image(img, (FLAGS.image_size, FLAGS.image_size))
+            img_gray_rescaled = rescale_grayscale_image(img_gray_resized)
+            img_l = img_gray_rescaled
+
         img_l_preprocessed = apply_image_l_pre_processing(img_l)
         img_l_preprocessed = np.repeat(np.expand_dims(img_l_preprocessed, axis=-1), 3, axis=-1)
         img_l_preprocessed = np.expand_dims(img_l_preprocessed, axis=0)
@@ -48,7 +54,7 @@ def generate_gan_results(FLAGS):
         gen_img_rgb = convert_lab2rgb(gen_img_lab)
         gen_img_rgb = gen_img_rgb * 255
         gen_img_rgb = gen_img_rgb.astype(np.uint8)
-        save_image_rgb(os.path.join(FLAGS.dir_generated_results, "generated_" + list_test_files[idx]), gen_img_rgb)
+        save_image_rgb(os.path.join(FLAGS.dir_generated_results, list_test_files[idx]), gen_img_rgb)
         print(f"{(idx+1)} / {num_test_files} done")
     print(f"Generating results completed successfully, generated results in : {FLAGS.dir_generated_results}")
 
