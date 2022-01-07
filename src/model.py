@@ -210,7 +210,7 @@ class ImageToImageConditionalGAN(nn.Module):
         self.loss_names = ["gen_gan", "gen_l1", "dis_real", "dis_fake"]
         self.lambda_ = lambda_
         self.net_gen = Generator()
-        self.net_dis = PatchDiscriminatorGAN(in_channels=5)
+        self.net_dis = PatchDiscriminatorGAN(in_channels=3)
 
         self.criterion_GAN = GANLoss().to(self.device)
         self.criterion_l1 = nn.L1Loss()
@@ -242,6 +242,13 @@ class ImageToImageConditionalGAN(nn.Module):
         self.real_domain_1 = data["domain_1"].to(self.device)
         self.real_domain_2 = data["domain_2"].to(self.device)
 
+        if self.device == torch.device("cuda"):
+            self.real_domain_1_1_ch = self.real_domain_1[:, 0, :, :]
+            self.real_domain_1_1_ch = self.real_domain_1_1_ch[:, None, :, :]
+        else:
+            self.real_domain_1_1_ch = self.real_domain_1[:, :, :, 0]
+            self.real_domain_1_1_ch = self.real_domain_1_1_ch[:, :, :, None]
+
     def forward(self):
         # compute fake image in domain_2: Generator(domain_1)
         self.fake_domain_2 = self.net_gen(self.real_domain_1)
@@ -251,7 +258,7 @@ class ImageToImageConditionalGAN(nn.Module):
         Calculate GAN and L1 loss for generator
         """
         # first, Generator(domain_1) should try to fool the Discriminator
-        fake_domain_12 = torch.cat((self.real_domain_1, self.fake_domain_2), dim=1)
+        fake_domain_12 = torch.cat((self.real_domain_1_1_ch, self.fake_domain_2), dim=1)
         pred_fake = self.net_dis(fake_domain_12)
         self.loss_gen_gan = self.criterion_GAN(pred_fake, True)
 
@@ -268,13 +275,13 @@ class ImageToImageConditionalGAN(nn.Module):
         Calculate GAN loss for discriminator
         """
         # Fake
-        fake_domain_12 = torch.cat((self.real_domain_1, self.fake_domain_2), dim=1)
+        fake_domain_12 = torch.cat((self.real_domain_1_1_ch, self.fake_domain_2), dim=1)
         # stop backprop to generator by detaching fake_domain_12
         pred_fake = self.net_dis(fake_domain_12.detach())
         self.loss_dis_fake = self.criterion_GAN(pred_fake, False)
 
         # Real
-        real_domain_12 = torch.cat((self.real_domain_1, self.real_domain_2), dim=1)
+        real_domain_12 = torch.cat((self.real_domain_1_1_ch, self.real_domain_2), dim=1)
         pred_real = self.net_dis(real_domain_12)
         self.loss_dis_real = self.criterion_GAN(pred_real, True)
 
