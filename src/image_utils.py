@@ -29,10 +29,14 @@ def concat_images_l_ab(img_l, img_ab):
     img_lab = np.concatenate((img_l, img_ab), axis=-1)
     return img_lab
 
-def read_image_rgb(file_img):
-    img_rgb = imread(file_img)
-    return img_rgb
+def read_image(file_img):
+    img = imread(file_img)
+    return img
 
 def save_image_rgb(file_img, img_arr):
     imsave(file_img, img_arr)
     return
+
+def rescale_grayscale_image(img_gray):
+    img_gray_rescaled = (img_gray / 255.) * 100
+    return img_gray_rescaled
