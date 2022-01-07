@@ -1,12 +1,13 @@
 import os
 import skimage
 import numpy as np
+from PIL import Image
 from skimage.io import imread
 from skimage.color import rgb2lab
 
 import torch
 from torchvision import transforms
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 
 class ColorizationDataset(Dataset):
     def __init__(self, dir_dataset, image_size=320, is_train_set=True):
@@ -27,12 +28,14 @@ class ColorizationDataset(Dataset):
 
         if is_train_set:
             self.transform = transforms.Compose([
-                transforms.RESIZE((self.image_size, self.image_size), Image.BILINEAR),
+                transforms.ToTensor(),
+                transforms.Resize((self.image_size, self.image_size), Image.BILINEAR),
                 transforms.RandomHorizontalFlip()
             ])
         else:
             self.transform = transforms.Compose([
-                transforms.RESIZE((self.image_size, self.image_size), Image.BILINEAR)
+                transforms.ToTensor(),
+                transforms.Resize((self.image_size, self.image_size), Image.BILINEAR)
             ])
 
     def __len__(self):
@@ -45,12 +48,14 @@ class ColorizationDataset(Dataset):
 
         # convert to numpy array
         img_rgb = np.array(img_rgb)
+        img_rgb = np.transpose(img_rgb, axes=(1, 2, 0))
 
         # convert rgb to lab image
         img_lab = rgb2lab(img_rgb).astype(np.float32)
         img_lab = transforms.ToTensor()(img_lab)
 
         img_l = img_lab[[0], ...] / 50. - 1.
+        img_l = torch.repeat_interleave(img_l, 3, dim=0)
         # img_l belongs to [-1, 1]
         img_ab = img_lab[[1, 2], ...] / 110.
         # img_ab belongs to [-1, 1]
