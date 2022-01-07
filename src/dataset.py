@@ -52,7 +52,7 @@ class ColorizationDataset(Dataset):
 
         img_l = img_lab[[0], ...] / 50. - 1.
         # img_l belongs to [-1, 1]
-        img_ab = img_lab[[1, 2]], ...] / 110.
+        img_ab = img_lab[[1, 2], ...] / 110.
         # img_ab belongs to [-1, 1]
 
         # return a dict of domain_1 and domain_2 images
