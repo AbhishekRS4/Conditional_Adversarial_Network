@@ -63,19 +63,19 @@ class UNetDecoder(nn.Module):
 
     def forward(self, x):
         self.up_1 = self.up_block1(x)   # [256, H/16, W/16]
-        self.up_1 = torch.cat([self.encoder_net.block4, self.up_1])     # [512, H/16, W/16]
+        self.up_1 = torch.cat([self.encoder_net.block4, self.up_1], dim=1)     # [512, H/16, W/16]
         self.up_1 = self.conv_reduction_1(self.up_1)    # [256, H/16, W/16]
 
-        self.up_2 = self.up_block2(self.up_2)   # [128, H/8, W/8]
-        self.up_2 = torch.cat([self.encoder_net.block3, self.up_2])     # [256, H/8, H/8]
+        self.up_2 = self.up_block2(self.up_1)   # [128, H/8, W/8]
+        self.up_2 = torch.cat([self.encoder_net.block3, self.up_2], dim=1)     # [256, H/8, H/8]
         self.up_2 = self.conv_reduction_2(self.up_2)    # [128, H/8, W/8]
 
         self.up_3 = self.up_block3(self.up_2)   # [64, H/4, W/4]
-        self.up_3 = torch.cat([self.encoder_net.block2, self.up_3])     # [128, H/4, W/4]
+        self.up_3 = torch.cat([self.encoder_net.block2, self.up_3], dim=1)     # [128, H/4, W/4]
         self.up_3 = self.conv_reduction_3(self.up_3)    # [64, H/4, W/4]
 
         self.up_4 = self.up_block4(self.up_3)   # [64, H/2, W/2]
-        self.up_4 = torch.cat([self.encoder_net.block1, self.up_4])     # [128, H/2, W/2]
+        self.up_4 = torch.cat([self.encoder_net.block1, self.up_4], dim=1)     # [128, H/2, W/2]
         self.up_4 = self.conv_reduction_3(self.up_4)    # [64, H/2, W/2]
 
         self.up_5 = self.up_block4(self.up_4)   # [64, H, W]
@@ -103,10 +103,10 @@ class UNetDecoder(nn.Module):
         """
         block = nn.Sequential(
             nn.ConvTranspose2d(in_channels, out_channels, kernel_size=conv_tr_kernel_size, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(),
+            nn.BatchNorm2d(out_channels),
             nn.ELU(),
             nn.Conv2d(out_channels, out_channels, kernel_size=conv_kernel_size, padding=1, bias=False),
-            nn.BatchNorm2d(),
+            nn.BatchNorm2d(out_channels),
             nn.ELU()
         )
         return block
@@ -204,12 +204,13 @@ class ImageToImageConditionalGAN(nn.Module):
     """
     Defines Image (domain A) to Image (domain B) Conditional Adversarial Network
     """
-    def __init__(self, lr_gen=2e-4, lr_dis=2e-4, beta1=0.5, beta2=0.999, lambda_=100.0):
+    def __init__(self, device, lr_gen=2e-4, lr_dis=2e-4, beta1=0.5, beta2=0.999, lambda_=100.0):
         super().__init__()
+        self.device = device
         self.loss_names = ["gen_gan", "gen_l1", "dis_real", "dis_fake"]
         self.lambda_ = lambda_
         self.net_gen = Generator()
-        self.net_dis = Discriminator(in_channels=3)
+        self.net_dis = PatchDiscriminatorGAN(in_channels=5)
 
         self.criterion_GAN = GANLoss().to(self.device)
         self.criterion_l1 = nn.L1Loss()
