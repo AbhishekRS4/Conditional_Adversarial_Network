@@ -60,7 +60,7 @@ class UNetDecoder(nn.Module):
         self.up_block4 = self.up_conv_block(64, 64)
         self.conv_reduction_4 = nn.Conv2d(128, 64, kernel_size=1)
 
-        self.up_block5 = self.final_up_conv_block(64, 64)
+        self.up_block5 = self.final_up_conv_block(conv_tr_in_channels=64, conv_tr_out_channels=32, out_channels=out_channels)
 
     def forward(self, x):
         self.up_1 = self.up_block1(x)   # [256, H/16, W/16]
@@ -82,15 +82,17 @@ class UNetDecoder(nn.Module):
         self.out_features = self.up_block5(self.up_4)    # [2, H, W]
         return self.out_features
 
-    def final_up_conv_block(self, in_channels, out_channels, conv_tr_kernel_size=4):
+    def final_up_conv_block(self, conv_tr_in_channels, conv_tr_out_channels, out_channels, conv_tr_kernel_size=4):
         """
         ---------
         Arguments
         ---------
-        in_channels : int
-            number of input channels
+        conv_tr_in_channels : int
+            number of input channels for conv transpose
+        conv_tr_out_channels : int
+            number of output channels for conv transpose
         out_channels : int
-            number of output channels
+            number of output channels in the final layer
         conv_tr_kernel_size : int (default=4)
             kernel size for convolution transpose layer
 
@@ -100,8 +102,9 @@ class UNetDecoder(nn.Module):
         A sequential block depending on the input arguments
         """
         final_block = nn.Sequential(
-            nn.ReLU(True),
-            nn.ConvTranspose2d(in_channels, out_channels, kernel_size=conv_tr_kernel_size, stride=2, padding=1, bias=False),
+            nn.ReLU(),
+            nn.ConvTranspose2d(conv_tr_in_channels, conv_tr_out_channels, kernel_size=conv_tr_kernel_size, stride=2, padding=1, bias=False),
+            nn.Conv2d(conv_tr_out_channels, out_channels, kernel_size=1),
             nn.Tanh(),
         )
         return final_block
@@ -127,20 +130,14 @@ class UNetDecoder(nn.Module):
         """
         if use_dropout:
             block = nn.Sequential(
-                nn.ReLU(True),
+                nn.ReLU(),
                 nn.ConvTranspose2d(in_channels, out_channels, kernel_size=conv_tr_kernel_size, stride=2, padding=1, bias=False),
                 nn.BatchNorm2d(out_channels),
                 nn.Dropout(0.5),
-                """
-                # layers not used in the original implementation
-                nn.Conv2d(out_channels, out_channels, kernel_size=conv_kernel_size, padding=1, bias=False),
-                nn.BatchNorm2d(out_channels),
-                nn.ReLU()
-                """
             )
         else:
             block = nn.Sequential(
-                nn.ReLU(True),
+                nn.ReLU(),
                 nn.ConvTranspose2d(in_channels, out_channels, kernel_size=conv_tr_kernel_size, stride=2, padding=1, bias=False),
                 nn.BatchNorm2d(out_channels),
             )
