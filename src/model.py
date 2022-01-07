@@ -14,7 +14,7 @@ class ResNetEncoder(nn.Module):
         ---------
         Arguments
         ---------
-        pretrained : bool
+        pretrained : bool (default=True)
             boolean to control whether to use a pretrained resnet model or not
         """
         super().__init__()
@@ -43,23 +43,24 @@ class UNetDecoder(nn.Module):
         ---------
         encoder_net : PyTorch model object of the encoder
             PyTorch model object of the encoder
-        out_channels : int
+        out_channels : int (default=2)
             number of output channels of UNet Decoder
         """
         super().__init__()
         self.encoder_net = encoder_net
-        self.up_block1 = self.up_conv_block(512, 256)
+        self.up_block1 = self.up_conv_block(512, 256, use_dropout=True)
         self.conv_reduction_1 = nn.Conv2d(512, 256, kernel_size=1)
 
-        self.up_block2 = self.up_conv_block(256, 128)
+        self.up_block2 = self.up_conv_block(256, 128, use_dropout=True)
         self.conv_reduction_2 = nn.Conv2d(256, 128, kernel_size=1)
 
         self.up_block3 = self.up_conv_block(128, 64)
         self.conv_reduction_3 = nn.Conv2d(128, 64, kernel_size=1)
 
         self.up_block4 = self.up_conv_block(64, 64)
+        self.conv_reduction_4 = nn.Conv2d(128, 64, kernel_size=1)
 
-        self.final_conv = nn.Conv2d(64, out_channels, kernel_size=1, stride=1, padding=0)
+        self.up_block5 = self.final_up_conv_block(64, 64)
 
     def forward(self, x):
         self.up_1 = self.up_block1(x)   # [256, H/16, W/16]
@@ -76,13 +77,12 @@ class UNetDecoder(nn.Module):
 
         self.up_4 = self.up_block4(self.up_3)   # [64, H/2, W/2]
         self.up_4 = torch.cat([self.encoder_net.block1, self.up_4], dim=1)     # [128, H/2, W/2]
-        self.up_4 = self.conv_reduction_3(self.up_4)    # [64, H/2, W/2]
+        self.up_4 = self.conv_reduction_4(self.up_4)    # [64, H/2, W/2]
 
-        self.up_5 = self.up_block4(self.up_4)   # [64, H, W]
-        self.out_features = self.final_conv(self.up_5)  # [2, H, W]
+        self.out_features = self.up_block5(self.up_4)    # [2, H, W]
         return self.out_features
 
-    def up_conv_block(self, in_channels, out_channels, conv_kernel_size=3, conv_tr_kernel_size=4):
+    def final_up_conv_block(self, in_channels, out_channels, conv_tr_kernel_size=4):
         """
         ---------
         Arguments
@@ -91,9 +91,7 @@ class UNetDecoder(nn.Module):
             number of input channels
         out_channels : int
             number of output channels
-        conv_kernel_size : int
-            kernel size for convolution layer
-        conv_tr_kernel_size : int
+        conv_tr_kernel_size : int (default=4)
             kernel size for convolution transpose layer
 
         -------
@@ -101,14 +99,51 @@ class UNetDecoder(nn.Module):
         -------
         A sequential block depending on the input arguments
         """
-        block = nn.Sequential(
+        final_block = nn.Sequential(
+            nn.ReLU(True),
             nn.ConvTranspose2d(in_channels, out_channels, kernel_size=conv_tr_kernel_size, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ELU(),
-            nn.Conv2d(out_channels, out_channels, kernel_size=conv_kernel_size, padding=1, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ELU()
+            nn.Tanh(),
         )
+        return final_block
+
+    def up_conv_block(self, in_channels, out_channels, conv_tr_kernel_size=4, use_dropout=False):
+        """
+        ---------
+        Arguments
+        ---------
+        in_channels : int
+            number of input channels
+        out_channels : int
+            number of output channels
+        use_dropout : bool (default=False)
+            boolean to control whether to use dropout or not [induces randomness - used instead of random noise vector as input in Generator]
+        conv_tr_kernel_size : int (default=4)
+            kernel size for convolution transpose layer
+
+        -------
+        Returns
+        -------
+        A sequential block depending on the input arguments
+        """
+        if use_dropout:
+            block = nn.Sequential(
+                nn.ReLU(True),
+                nn.ConvTranspose2d(in_channels, out_channels, kernel_size=conv_tr_kernel_size, stride=2, padding=1, bias=False),
+                nn.BatchNorm2d(out_channels),
+                nn.Dropout(0.5),
+                """
+                # layers not used in the original implementation
+                nn.Conv2d(out_channels, out_channels, kernel_size=conv_kernel_size, padding=1, bias=False),
+                nn.BatchNorm2d(out_channels),
+                nn.ReLU()
+                """
+            )
+        else:
+            block = nn.Sequential(
+                nn.ReLU(True),
+                nn.ConvTranspose2d(in_channels, out_channels, kernel_size=conv_tr_kernel_size, stride=2, padding=1, bias=False),
+                nn.BatchNorm2d(out_channels),
+            )
         return block
 
 class ResUNet(nn.Module):
@@ -147,9 +182,9 @@ class PatchDiscriminatorGAN(nn.Module):
         ---------
         in_channels : int
             number of input channels for Discriminator
-        num_filters : int
+        num_filters : int (default=64)
             number of filters in the first layer of Discriminator
-        num_blocks : int
+        num_blocks : int (default=3)
             number of blocks to be used in the Discriminator
         """
         super().__init__()
@@ -225,7 +260,7 @@ class ImageToImageConditionalGAN(nn.Module):
         ---------
         model : model object
             PyTorch model object
-        requires_grad : bool
+        requires_grad : bool (default=True)
             boolean to control whether the model requires gradients or not
         """
         for param in model.parameters():
