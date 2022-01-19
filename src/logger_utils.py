@@ -17,7 +17,7 @@ class CSVWriter:
         self.file_name = file_name
         self.column_names = column_names
 
-        self.file_handle = open(self.file_name, "w")
+        self.file_handle = open(self.file_name, "w", encoding="utf-8", newline="\n")
         self.writer = csv.writer(self.file_handle)
 
         self.write_header()
