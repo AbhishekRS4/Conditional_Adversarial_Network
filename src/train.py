@@ -53,12 +53,12 @@ def train_gan(FLAGS):
     print("Training completed")
 
 def main():
-    batch_size = 8
+    batch_size = 16
     num_epochs = 100
     image_size = 320
     file_model = "colorizer_cgan"
     file_logger_train = "train_metrics.csv"
-    dir_dataset_train = "/home/abhishek/sample_dataset/train/"
+    dir_dataset_train = "/home/abhishek/Desktop/machine_learning/coco_2017/all_train/"
     dir_model = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
     parser = argparse.ArgumentParser(
