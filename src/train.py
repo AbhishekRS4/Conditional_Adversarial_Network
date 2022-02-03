@@ -24,7 +24,8 @@ def train_gan(FLAGS):
         FLAGS.dir_dataset_train, image_size=FLAGS.image_size, batch_size=FLAGS.batch_size
     )
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda")
     cond_gan_model = ImageToImageConditionalGAN(device)
     cond_gan_model.to(device)
     cond_gan_model.train()
