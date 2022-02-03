@@ -67,5 +67,6 @@ class ColorizationDataset(Dataset):
 
 def get_dataset_loader(dir_dataset, image_size=320, batch_size=8, is_train_set=True):
     dataset = ColorizationDataset(dir_dataset, image_size=image_size, is_train_set=is_train_set)
+    print(f"Num images in the train dataset : {dataset.__len__()}")
     dataset_loader = DataLoader(dataset, batch_size=batch_size, shuffle=is_train_set)
     return dataset_loader
