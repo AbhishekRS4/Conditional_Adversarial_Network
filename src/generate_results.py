@@ -37,8 +37,7 @@ def generate_gan_results(FLAGS):
             img_l = img_lab[:, :, 0]
         else:
             img_gray_resized = resize_image(img, (FLAGS.image_size, FLAGS.image_size))
-            img_gray_rescaled = rescale_grayscale_image(img_gray_resized)
-            img_l = img_gray_rescaled
+            img_l = rescale_grayscale_image_l_channel(img_gray_resized)
 
         img_l_preprocessed = apply_image_l_pre_processing(img_l)
         img_l_preprocessed = np.repeat(np.expand_dims(img_l_preprocessed, axis=-1), 3, axis=-1)
