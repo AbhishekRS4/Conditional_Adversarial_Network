@@ -5,8 +5,8 @@ from skimage.transform import resize
 from skimage.io import imread, imsave
 from skimage.color import rgb2lab, lab2rgb, rgb2gray
 
-def resize_image(img_rgb, image_size=(320, 320)):
-    img_resized = resize(img_rgb, image_size)
+def resize_image(img, image_size=(320, 320)):
+    img_resized = resize(img, image_size)
     return img_resized
 
 def convert_rgb2gray(img_rgb):
@@ -45,6 +45,6 @@ def save_image_rgb(file_img, img_arr):
     imsave(file_img, img_arr)
     return
 
-def rescale_grayscale_image(img_gray):
-    img_gray_rescaled = (img_gray / 255.) * 100
-    return img_gray_rescaled
+def rescale_grayscale_image_l_channel(img_gray):
+    img_l_rescaled = (img_gray) * 100.
+    return img_l_rescaled
