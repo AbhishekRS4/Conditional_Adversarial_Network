@@ -38,28 +38,40 @@ def generate_gan_results(FLAGS):
         img = read_image(os.path.join(FLAGS.dir_dataset_test, list_test_files[idx]))
 
         if len(img.shape) == 3:
+            # if input image is RGB
             img_rgb_resized = resize_image(img, (FLAGS.image_size, FLAGS.image_size))
+            # resized rgb image is in [0, 255]
             img_lab = convert_rgb2lab(img_rgb_resized)
             img_l = img_lab[:, :, 0]
+            # L channel is in [0, 100]
         else:
+            # if input image is grayscale
             img_gray_resized = resize_image(img, (FLAGS.image_size, FLAGS.image_size))
+            # resized grayscale is in [0, 1]
             img_l = rescale_grayscale_image_l_channel(img_gray_resized)
+            # L channel is in [0, 100]
 
+        # apply pre-processing on L channel image
         img_l_preprocessed = apply_image_l_pre_processing(img_l)
+        # repeat L channel 3 times because ResNet needs a 3 channel input
         img_l_preprocessed = np.repeat(np.expand_dims(img_l_preprocessed, axis=-1), 3, axis=-1)
         img_l_preprocessed = np.expand_dims(img_l_preprocessed, axis=0)
+        # NCHW format
         img_l_preprocessed = np.transpose(img_l_preprocessed, (0, 3, 1, 2))
 
         img_l_tensor = torch.tensor(img_l_preprocessed).float()
         img_l_tensor = img_l_tensor.to(device, dtype=torch.float)
 
+        # Use Generator network to generate ab channels with pre-processed and repeated L channel as the input
         gen_img_ab_tensor = cond_gan_model.net_gen(img_l_tensor)
         gen_img_ab = gen_img_ab_tensor.detach().cpu().numpy()
         gen_img_ab = np.squeeze(gen_img_ab)
         gen_img_ab = np.transpose(gen_img_ab, [1, 2, 0])
         gen_img_ab_postprocessed = apply_image_ab_post_processing(gen_img_ab)
 
+        # concat L and Generator network generated ab channels
         gen_img_lab = np.concatenate((np.expand_dims(img_l, axis=-1), gen_img_ab_postprocessed), axis=-1)
+        # convert Lab to RGB
         gen_img_rgb = convert_lab2rgb(gen_img_lab)
         gen_img_rgb = gen_img_rgb * 255
         gen_img_rgb = gen_img_rgb.astype(np.uint8)
