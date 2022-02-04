@@ -25,6 +25,10 @@ def apply_image_l_pre_processing(img_l):
     img_l = (img_l / 50.) - 1
     return img_l
 
+def apply_image_ab_pre_processing(img_ab):
+    img_ab = (img_ab) / 110.
+    return imag_ab
+
 def concat_images_l_ab(img_l, img_ab):
     img_lab = np.concatenate((img_l, img_ab), axis=-1)
     return img_lab
