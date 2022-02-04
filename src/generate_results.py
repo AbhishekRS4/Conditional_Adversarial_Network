@@ -14,7 +14,11 @@ def generate_gan_results(FLAGS):
     if not os.path.isdir(FLAGS.dir_generated_results):
         os.makedirs(FLAGS.dir_generated_results)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    try:
+        device = torch.device("cuda")
+    except:
+        print("CUDA device not found, so exiting....")
+        sys.exit(0)
     cond_gan_model = ImageToImageConditionalGAN(device)
     cond_gan_model.eval()
     cond_gan_model.load_state_dict(torch.load(FLAGS.model_checkpoint))
