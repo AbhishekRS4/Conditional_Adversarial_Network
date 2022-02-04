@@ -310,11 +310,13 @@ class ImageToImageConditionalGAN(nn.Module):
         fake_domain_12 = torch.cat((self.real_domain_1_1_ch, self.fake_domain_2), dim=1)
         # stop backprop to generator by detaching fake_domain_12
         pred_fake = self.net_dis(fake_domain_12.detach())
+        # Discriminator should identify the fake image
         self.loss_dis_fake = self.criterion_GAN(pred_fake, False)
 
         # Real
         real_domain_12 = torch.cat((self.real_domain_1_1_ch, self.real_domain_2), dim=1)
         pred_real = self.net_dis(real_domain_12)
+        # Discriminator should identify the real image
         self.loss_dis_real = self.criterion_GAN(pred_real, True)
 
         # compute the combined loss

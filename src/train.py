@@ -24,7 +24,6 @@ def train_gan(FLAGS):
         FLAGS.dir_dataset_train, image_size=FLAGS.image_size, batch_size=FLAGS.batch_size
     )
 
-    #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     try:
         device = torch.device("cuda")
     except:
@@ -56,6 +55,7 @@ def train_gan(FLAGS):
         )
         torch.save(cond_gan_model.state_dict(), os.path.join(FLAGS.dir_model, f"{FLAGS.file_model}_{epoch}.pt"))
     print("Training completed")
+    return
 
 def main():
     batch_size = 16
@@ -87,6 +87,7 @@ def main():
 
     FLAGS, unparsed = parser.parse_known_args()
     train_gan(FLAGS)
+    return
 
 if __name__ == "__main__":
     main()

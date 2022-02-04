@@ -28,15 +28,18 @@ class CSVWriter:
         writes header into csv file
         """
         self.write_row(self.column_names)
+        return
 
     def write_row(self, row):
         """
         writes a row into csv file
         """
         self.writer.writerow(row)
+        return
 
     def close(self):
         """
         close the file
         """
         self.file_handle.close()
+        return
