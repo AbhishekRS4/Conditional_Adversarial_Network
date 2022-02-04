@@ -54,11 +54,14 @@ class ColorizationDataset(Dataset):
         img_lab = rgb2lab(img_rgb).astype(np.float32)
         img_lab = transforms.ToTensor()(img_lab)
 
+        # preprocess l channel, img_l belongs to [-1, 1]
         img_l = img_lab[[0], ...] / 50. - 1.
+
+        # repeat l channel 3 times for ResNet
         img_l = torch.repeat_interleave(img_l, 3, dim=0)
-        # img_l belongs to [-1, 1]
+
+        # preprocess ab channel, img_ab belongs to [-1, 1]
         img_ab = img_lab[[1, 2], ...] / 110.
-        # img_ab belongs to [-1, 1]
 
         # return a dict of domain_1 and domain_2 images
         # domain_1 is l channel and
@@ -66,6 +69,24 @@ class ColorizationDataset(Dataset):
         return {"domain_1": img_l, "domain_2": img_ab, "file_name": self.list_images[idx]}
 
 def get_dataset_loader(dir_dataset, image_size=320, batch_size=8, is_train_set=True):
+    """
+    ---------
+    Arguments
+    ---------
+    dir_dataset : str
+        full directory path of dataset (train or valid) containing images
+    image_size : int
+        image size to be used for training
+    is_train_set : bool
+        boolean to control whether to generate a train or validation dataset object
+    batch_size : int
+        batch size to be used to generate train dataset
+
+    -------
+    Returns
+    -------
+    DataLoader object
+    """
     dataset = ColorizationDataset(dir_dataset, image_size=image_size, is_train_set=is_train_set)
     print(f"Num images in the train dataset : {dataset.__len__()}")
     dataset_loader = DataLoader(dataset, batch_size=batch_size, shuffle=is_train_set)
