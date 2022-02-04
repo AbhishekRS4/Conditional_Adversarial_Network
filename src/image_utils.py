@@ -3,11 +3,15 @@ import skimage
 import numpy as np
 from skimage.transform import resize
 from skimage.io import imread, imsave
-from skimage.color import rgb2lab, lab2rgb
+from skimage.color import rgb2lab, lab2rgb, rgb2gray
 
 def resize_image(img_rgb, image_size=(320, 320)):
     img_resized = resize(img_rgb, image_size)
     return img_resized
+
+def convert_rgb2gray(img_rgb):
+    img_gray = rgb2gray(img_rgb)
+    return img_gray
 
 def convert_lab2rgb(img_lab):
     img_rgb = lab2rgb(img_lab)
@@ -27,7 +31,7 @@ def apply_image_l_pre_processing(img_l):
 
 def apply_image_ab_pre_processing(img_ab):
     img_ab = (img_ab) / 110.
-    return imag_ab
+    return img_ab
 
 def concat_images_l_ab(img_l, img_ab):
     img_lab = np.concatenate((img_l, img_ab), axis=-1)
