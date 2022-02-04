@@ -25,7 +25,11 @@ def train_gan(FLAGS):
     )
 
     #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cuda")
+    try:
+        device = torch.device("cuda")
+    except:
+        print("CUDA device not found, so exiting....")
+        sys.exit(0)
     cond_gan_model = ImageToImageConditionalGAN(device)
     cond_gan_model.to(device)
     cond_gan_model.train()
