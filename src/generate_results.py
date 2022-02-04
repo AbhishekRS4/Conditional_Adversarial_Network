@@ -10,6 +10,11 @@ import torch.nn as nn
 from image_utils import *
 from model import ImageToImageConditionalGAN
 
+def activate_dropout(m):
+    if type(m) == nn.Dropout:
+        m.train()
+    return
+
 def generate_gan_results(FLAGS):
     if not os.path.isdir(FLAGS.dir_generated_results):
         os.makedirs(FLAGS.dir_generated_results)
@@ -23,6 +28,7 @@ def generate_gan_results(FLAGS):
     cond_gan_model.eval()
     cond_gan_model.load_state_dict(torch.load(FLAGS.model_checkpoint))
     cond_gan_model.to(device)
+    cond_gan_model.net_gen.apply(activate_dropout)
 
     list_test_files = sorted(os.listdir(FLAGS.dir_dataset_test))
     num_test_files = len(list_test_files)
