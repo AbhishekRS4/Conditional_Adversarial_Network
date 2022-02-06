@@ -83,7 +83,7 @@ def generate_gan_results(FLAGS):
 def main():
     image_size = 320
     dir_dataset_test = "/home/abhishek/sample_dataset/test/"
-    dir_generated_results = "generated_gan_results/"
+    dir_generated_results = "generated_cgan_results/"
     model_checkpoint = "sample.pt"
 
     parser = argparse.ArgumentParser(

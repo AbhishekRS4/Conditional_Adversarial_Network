@@ -96,7 +96,7 @@ def generate_gan_results(FLAGS):
 def main():
     image_size = 320
     dir_dataset_test = "/home/abhishek/Desktop/machine_learning/coco_2017/all_test/"
-    dir_generated_results = "generated_gan_results/"
+    dir_generated_results = "generated_cgan_results/"
     model_checkpoint = "sample.pt"
     is_save_generated_images = 1
 
