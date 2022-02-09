@@ -11,6 +11,9 @@
 python3 src/train.py --help
 ```
 * After training, use the following script to compute evaluation metrics on the test set. Use `--help` to list all the commandline options.
+```
+python3 src/compute_test_metrics.py --help
+```
 * After training, use the following script to colourize the images using the Generator network. Use `--help` to list all the commandline options.
 ```
 python3 src/generate_results.py --help
