@@ -4,6 +4,7 @@
 * Final project for the [Machine Learning](https://www.rug.nl/ocasys/fwn/vak/show?code=WMAI010-05) Master's course at University of Groningen
 * The focus is on Colourization task using Conditional Generative Adversarial Networks
 * Using pre-trained ResNet and UNet
+* Some code is borrowed from one of the [author's repo](https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix)
 
 ## Instructions to run the code
 * For running the train script use. Use `--help` to list all the commandline options.
